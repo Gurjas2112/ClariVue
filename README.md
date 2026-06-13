@@ -6,6 +6,8 @@
 
 **Real-time, self-hosted video support platform for customer support teams.**
 
+> 🎬 **App Prototype (Google Drive — Public View):** <ins>**[▶ Watch the walkthrough](https://drive.google.com/file/d/1bHCXDfK0uxA1szTW6mHbl1PQhFolRS4t/view?usp=sharing)**</ins>
+
 > Built for the **AtomQuest Hackathon 1.0 — Grand Finale**. Full setup + architecture walkthrough in
 > [`WORKFLOW.md`](./essential_docs/WORKFLOW.md); system design + R1–R20 traceability in [`ARCHITECTURE.md`](./essential_docs/ARCHITECTURE.md).
 
