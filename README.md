@@ -87,6 +87,81 @@ Supabase (Postgres, Auth, Storage) · Redis · Prometheus.
 
 ---
 
+## Live deployment
+
+**Live app: https://clari-vue.vercel.app**
+
+| Plane | Where it runs |
+|-------|---------------|
+| App (UI + API route handlers) | **Vercel** (`clari-vue` project, root directory `apps/web`) |
+| Database · Auth · Storage | **Supabase** cloud (`nwbzqmeqmqfajqkpuapr`, ap-southeast-1) |
+| Media plane (LiveKit SFU + Egress + Redis) | **self-hosted** in local Docker, exposed to the cloud via a **cloudflared tunnel** |
+
+Because the SFU is self-hosted (the brief forbids third-party hosted video), the Vercel app reaches
+LiveKit through a public **cloudflared tunnel** to the local Docker stack. That keeps media on *our
+own* server while still giving a public URL.
+
+### How it's deployed
+```bash
+# 1. expose the local LiveKit SFU publicly (keep this running)
+cloudflared tunnel --url http://localhost:7880        # → https://<name>.trycloudflare.com
+
+# 2. point the app at it (Vercel env, production)
+#    LIVEKIT_URL            = https://<name>.trycloudflare.com   (server SDK)
+#    NEXT_PUBLIC_LIVEKIT_URL = wss://<name>.trycloudflare.com    (browser signal)
+#    plus the Supabase + S3 keys (see apps/web/.env.example)
+
+# 3. deploy apps/web to the clari-vue project
+cd apps/web && vercel --prod
+```
+> **Monorepo note:** the Next.js app lives in `apps/web`. Set the Vercel project's **Root Directory**
+> to `apps/web` (Settings → Build & Deployment) so `git push` auto-deploys build correctly. Recording
+> additionally needs the local **Egress** container running (`--profile recording`) and the Supabase
+> **S3 access keys** set as Vercel env vars.
+
+### ⚠️ Operating the live demo — cloudflared tunnel recovery
+`trycloudflare` quick tunnels are **ephemeral and will drop** (machine sleep, network blip, time).
+When the tunnel dies, **live video and recording-start break** until it's restored. Because
+`NEXT_PUBLIC_LIVEKIT_URL` is **inlined at build time**, the new URL only takes effect after a redeploy.
+Recovery is three steps:
+
+```bash
+# 1. restart the tunnel → note the NEW https URL
+cloudflared tunnel --url http://localhost:7880
+
+# 2. update BOTH LiveKit URLs on Vercel (production)
+cd apps/web
+vercel env rm  LIVEKIT_URL production --yes
+echo "https://<new-name>.trycloudflare.com" | vercel env add LIVEKIT_URL production
+vercel env rm  NEXT_PUBLIC_LIVEKIT_URL production --yes
+echo "wss://<new-name>.trycloudflare.com"   | vercel env add NEXT_PUBLIC_LIVEKIT_URL production
+
+# 3. redeploy so the new wss URL is baked into the client bundle
+vercel --prod
+```
+Also keep these **running locally** the whole time: `docker compose -f infra/docker-compose.yml
+--profile recording up -d` (LiveKit + Egress + Redis). For a hands-off demo, replace the quick tunnel
+with a **named Cloudflare tunnel** (your own domain — stable URL) or run LiveKit on a small
+**public-IP VM** so there's nothing to babysit.
+
+---
+
+## End-to-end workflow (at a glance)
+
+1. **Local dev** — `docker compose up -d` (media plane) → apply DB schema (`npm run db:apply`) →
+   `cd apps/web && npm run dev`.
+2. **Verify** — `node scripts/media-gate-test.mjs` (SFU media + chat + files) and
+   `node scripts/recording-test.mjs` (record → ready) and `node scripts/admin-test.mjs`.
+3. **Deploy** — start the cloudflared tunnel, set Vercel env (Supabase + LiveKit tunnel URLs +
+   S3 keys), `vercel --prod`.
+4. **Operate** — keep the tunnel + Docker media plane up; on a tunnel drop, run the 3-step recovery
+   above.
+
+Full depth — PS-requirement coverage, architecture, install/run/test — is in
+[`WORKFLOW.md`](./essential_docs/WORKFLOW.md).
+
+---
+
 ## Run it locally
 
 ### Prerequisites

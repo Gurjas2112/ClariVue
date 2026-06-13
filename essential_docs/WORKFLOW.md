@@ -208,10 +208,36 @@ node scripts/admin-test.mjs        # admin access control + dashboard render
 
 ## 10. Deployment
 
-The app deploys to **Vercel** (UI + API + Supabase). The **media plane must be reachable publicly**
-for video to work on the live URL — either a self-hosted LiveKit on a VM/Fly with a dedicated IP, or
-a secure tunnel to the local LiveKit. See [`README.md`](./README.md) for the current deployment
-status and the exact steps used.
+**Live app: https://clari-vue.vercel.app** — Next.js app on **Vercel**, database/auth/storage on
+**Supabase** cloud, and the self-hosted **LiveKit + Egress + Redis** in local Docker exposed to the
+cloud through a **cloudflared tunnel** (media stays on our own SFU — no third-party hosted video).
+
+**Deploy steps**
+```bash
+# 1. expose the local SFU publicly (keep running)
+cloudflared tunnel --url http://localhost:7880          # → https://<name>.trycloudflare.com
+# 2. set Vercel env (production): Supabase keys + S3 keys, plus:
+#    LIVEKIT_URL = https://<name>.trycloudflare.com   NEXT_PUBLIC_LIVEKIT_URL = wss://<name>.trycloudflare.com
+# 3. deploy apps/web (set the project Root Directory to apps/web)
+cd apps/web && vercel --prod
+```
+
+**⚠️ Tunnel recovery (do this if live video/recording stops).** `trycloudflare` quick tunnels are
+ephemeral and drop. `NEXT_PUBLIC_LIVEKIT_URL` is inlined at build time, so the new URL needs a
+redeploy:
+```bash
+# 1. restart tunnel → new https URL
+cloudflared tunnel --url http://localhost:7880
+# 2. update BOTH urls on Vercel (production)
+cd apps/web
+vercel env rm LIVEKIT_URL production --yes;            echo "https://<new>.trycloudflare.com" | vercel env add LIVEKIT_URL production
+vercel env rm NEXT_PUBLIC_LIVEKIT_URL production --yes; echo "wss://<new>.trycloudflare.com"   | vercel env add NEXT_PUBLIC_LIVEKIT_URL production
+# 3. redeploy
+vercel --prod
+```
+Keep `docker compose -f infra/docker-compose.yml --profile recording up -d` running (LiveKit + Egress
++ Redis) the whole time — recording needs the local Egress container. For a hands-off demo, use a
+**named Cloudflare tunnel** (stable URL on your domain) or a **public-IP VM** for LiveKit.
 
 ---
 

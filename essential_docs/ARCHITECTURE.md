@@ -55,11 +55,48 @@ flowchart LR
 
 ### Why this split (and why not Railway)
 A WebRTC SFU needs a wide UDP port range + a stable IP. Railway/Render/Heroku only route HTTP/TCP,
-so the media plane runs on infrastructure that exposes raw UDP (locally: Docker; in production:
-Fly.io with a dedicated IPv4). The app backend needs no UDP, so it lives as Next.js route handlers
-co-located with the UI — no separate API service to operate. Locally everything is `localhost`; on
-Docker Desktop, clients use LiveKit's **ICE/TCP fallback** (port 7881) because the container's UDP
-candidates aren't reachable across the Docker VM boundary.
+so the media plane runs on infrastructure that exposes raw UDP/TCP (locally: Docker; for a stable
+public deployment: a VM with a dedicated IP). The app backend needs no UDP, so it lives as Next.js
+route handlers co-located with the UI — no separate API service to operate. Locally everything is
+`localhost`; on Docker Desktop, clients use LiveKit's **ICE/TCP fallback** (port 7881) because the
+container's UDP candidates aren't reachable across the Docker VM boundary.
+
+### Deployment (live)
+The live app runs at **https://clari-vue.vercel.app**: the Next.js app is on **Vercel**, the database/
+auth/storage on **Supabase** cloud, and the self-hosted **LiveKit + Egress + Redis** run in local
+Docker, exposed to the cloud through a **cloudflared tunnel** (so media still flows through *our own*
+SFU — never a third-party hosted video API). `NEXT_PUBLIC_LIVEKIT_URL` (wss → the tunnel) is the
+browser signal URL; `LIVEKIT_URL` (https → the tunnel) is the server SDK URL; LiveKit posts webhooks
+back to the public Vercel URL.
+
+```mermaid
+flowchart LR
+  subgraph Cloud
+    B[Customer / Agent browser]
+    V["Vercel — Next.js app + API"]
+    SB[("Supabase<br/>Postgres · Auth · Storage")]
+  end
+  subgraph Tunnel["cloudflared tunnel (public wss/https)"]
+    CF[trycloudflare URL]
+  end
+  subgraph Local["Local Docker (self-hosted media plane)"]
+    LK[LiveKit SFU]
+    EG[Egress]
+    RD[(Redis)]
+  end
+  B -- HTTPS --> V
+  B -- "wss signal" --> CF --> LK
+  V -- "room control / start egress" --> CF
+  V <--> SB
+  LK -- "webhooks → /api/webhooks/livekit" --> V
+  LK --> EG -- "MP4 upload (S3)" --> SB
+  LK <--> RD
+```
+
+> **Operational note:** `trycloudflare` quick tunnels are ephemeral. If the tunnel drops, restart it,
+> update `LIVEKIT_URL` + `NEXT_PUBLIC_LIVEKIT_URL` on Vercel, and redeploy (the public URL is inlined
+> at build time). A named Cloudflare tunnel or a public-IP VM removes this fragility. See
+> [`WORKFLOW.md`](./WORKFLOW.md) §10.
 
 ---
 
