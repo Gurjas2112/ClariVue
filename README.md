@@ -159,22 +159,6 @@ Both run against a server on `http://localhost:3000`.
 
 ---
 
-## Known limitations
-
-- **Single-node LiveKit** — no horizontal SFU scaling. Fine for the demo and many concurrent small
-  sessions.
-- On Docker Desktop, media uses **ICE/TCP fallback** on :7881 (the container's UDP candidates aren't
-  reachable from the host). Slightly higher latency than raw UDP; rock-solid for localhost/demo.
-- **Recording requires the egress profile + Supabase S3 keys** (one dashboard step, above). Without
-  them, the call/chat/admin features are fully functional; the Record button reports a clear error.
-- **Reconnect grace window** is fixed at 30s.
-- **Email confirmation is ON** — new signups receive a confirmation link via Gmail SMTP
-  (`gsgbmcc@gmail.com`). See [`WORKFLOW.md`](./essential_docs/WORKFLOW.md) (specifically section §11½) for SMTP setup details.
-- **Live deployment** at [clari-vue.vercel.app](https://clari-vue.vercel.app) (app + API + Supabase);
-  video media routed through a Cloudflare tunnel to the local LiveKit SFU.
-
----
-
 ## Repo layout
 
 ```
