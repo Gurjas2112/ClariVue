@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="essential_docs/atomberg_logo.png" alt="Atomberg" height="52" />
+  <img src="essential_docs/atomquest_hackathon_finale_logo.png" alt="Atomberg" height="52" />
 </p>
 
 # ClariVue
