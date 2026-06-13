@@ -31,8 +31,8 @@ export function AgentSessionClient({ sessionId, sessionTitle, status, identity, 
     let cancelled = false;
 
     async function connectToSession() {
-      // Pre-acquire camera + mic permissions BEFORE connecting to LiveKit.
-      // This forces the browser permission dialog and prevents silent failures.
+      // Best-effort: pre-acquire camera + mic permissions to trigger the
+      // browser dialog. If denied, proceed anyway — user can enable from control bar.
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         stream.getTracks().forEach((t) => t.stop());
@@ -41,8 +41,8 @@ export function AgentSessionClient({ sessionId, sessionTitle, status, identity, 
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           audioStream.getTracks().forEach((t) => t.stop());
         } catch {
-          if (!cancelled) setError("Please allow camera and microphone access to join the call");
-          return;
+          // Both denied — warn but don't block joining
+          toast("Camera and microphone blocked — you can enable them from the control bar", "info");
         }
       }
 

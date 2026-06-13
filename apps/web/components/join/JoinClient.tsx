@@ -51,24 +51,21 @@ export function JoinClient({ inviteId }: { inviteId: string }) {
     if (!name.trim()) return;
     setJoining(true);
     try {
-      // Pre-acquire camera + mic permissions BEFORE connecting to LiveKit.
-      // This forces the browser permission dialog to appear clearly.
-      // Without this, LiveKitRoom's internal getUserMedia can silently fail
-      // on some browsers (especially mobile), leaving the user with no media.
+      // Best-effort: pre-acquire camera + mic permissions to trigger the
+      // browser dialog before LiveKit connects. If the user denies, they can
+      // still join the room and enable media later from the control bar.
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        // Release the tracks immediately — LiveKit will re-acquire them.
         stream.getTracks().forEach((t) => t.stop());
-      } catch (mediaErr) {
-        // If camera fails, try audio-only (user might not have a camera)
+      } catch {
+        // Camera+video failed — try audio-only
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
           audioStream.getTracks().forEach((t) => t.stop());
           toast("Camera not available — joining with audio only", "info");
         } catch {
-          toast("Please allow camera and microphone access to join the call", "error");
-          setJoining(false);
-          return;
+          // Both failed — warn but still let them join
+          toast("Camera and microphone blocked — you can enable them from the control bar after joining", "info");
         }
       }
 
