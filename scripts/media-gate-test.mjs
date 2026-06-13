@@ -75,10 +75,32 @@ try {
 
   log(`live videos → agent: ${agentVids}, customer: ${custVids}`);
   if (agentVids >= 2 && custVids >= 2) {
-    console.log("\n✅ MEDIA GATE PASSED — both peers see each other through the SFU.");
+    console.log("✅ MEDIA GATE PASSED — both peers see each other through the SFU.");
   } else {
     failed = true;
-    console.log("\n❌ MEDIA GATE FAILED — remote video did not arrive. Check ICE/TCP config.");
+    console.log("❌ MEDIA GATE FAILED — remote video did not arrive. Check ICE/TCP config.");
+  }
+
+  // ── Chat (R10–R12): agent sends, customer receives in real time ─────────
+  const chatText = `hello-${Date.now()}`;
+  await agent.getByRole("button", { name: /toggle chat/i }).click();
+  await agent.locator('input[aria-label="Message"]').fill(chatText);
+  await agent.getByRole("button", { name: /^send$/i }).click();
+
+  await cust.getByRole("button", { name: /toggle chat/i }).click();
+  let chatOk = false;
+  try {
+    await cust.getByText(chatText, { exact: false }).waitFor({ timeout: 10000 });
+    chatOk = true;
+  } catch {
+    chatOk = false;
+  }
+  log(`chat delivered to customer: ${chatOk}`);
+  if (chatOk) {
+    console.log("✅ CHAT PASSED — real-time message delivered over the data channel.");
+  } else {
+    failed = true;
+    console.log("❌ CHAT FAILED — message did not arrive on the peer.");
   }
 } catch (err) {
   failed = true;
