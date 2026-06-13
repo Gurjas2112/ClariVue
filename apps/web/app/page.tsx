@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Video, ShieldCheck, Radio, MessageSquare, ArrowRight } from "lucide-react";
 
 export default function Landing() {
@@ -65,8 +66,29 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="border-t border-[var(--panel-border)] py-6 text-center text-sm text-[var(--fg-subtle)]">
-        ClariVue · real-time video support, owned end to end.
+      <footer className="border-t border-panel-border">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3 text-sm text-fg-muted">
+            <span>Built for</span>
+            <span className="grid place-items-center bg-white rounded-lg px-2.5 py-1.5">
+              <Image src="/atomberg_logo.png" alt="Atomberg" width={92} height={24} className="h-6 w-auto" />
+            </span>
+            <span>AtomQuest Hackathon 1.0</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/gurjas.jpeg"
+              alt="Gurjas Gandhi"
+              width={36}
+              height={36}
+              className="rounded-full object-cover w-9 h-9 border border-panel-border"
+            />
+            <div className="text-sm leading-tight">
+              <div className="font-medium">Gurjas Gandhi</div>
+              <div className="text-fg-subtle">ClariVue · owned end to end</div>
+            </div>
+          </div>
+        </div>
       </footer>
     </main>
   );

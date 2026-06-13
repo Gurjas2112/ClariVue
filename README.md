@@ -1,6 +1,13 @@
+<p align="center">
+  <img src="essential_docs/atomberg_logo.png" alt="Atomberg" height="52" />
+</p>
+
 # ClariVue
 
 **Real-time, self-hosted video support platform for customer support teams.**
+
+> Built for the **AtomQuest Hackathon 1.0 — Grand Finale**. Full setup + architecture walkthrough in
+> [`WORKFLOW.md`](./WORKFLOW.md); system design + R1–R20 traceability in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 A support **agent** creates a call session and invites a **customer** via a link. Both join from
 the browser — no install — onto live audio/video routed through **our own media server** (a
@@ -175,4 +182,16 @@ infra/           docker-compose + LiveKit/Egress config (local media plane)
 supabase/        SQL migration + seed (schema, RLS, storage buckets)
 scripts/         db apply, demo seed, e2e verification tests
 ARCHITECTURE.md  system design + requirements traceability matrix
+WORKFLOW.md      setup, run, architecture, PS-requirement coverage
 ```
+
+---
+
+## Author
+
+<p align="left">
+  <img src="essential_docs/my_photo.jpeg" alt="Gurjas Gandhi" width="72" height="72" style="border-radius:50%" />
+</p>
+
+**Gurjas Gandhi** — design, build, and deployment of ClariVue for the AtomQuest Hackathon 1.0 Grand
+Finale.
