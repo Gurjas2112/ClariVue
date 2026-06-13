@@ -4,7 +4,7 @@
 // /api/chat and hydrated with prior history on join. File cards render inline (R17).
 import { useEffect, useRef, useState } from "react";
 import { useDataChannel } from "@livekit/components-react";
-import { X, Send, Paperclip, FileText, Download } from "lucide-react";
+import { X, Send, Paperclip, FileText, Download, Loader2 } from "lucide-react";
 import type { ChatWirePayload, Role } from "@/lib/types";
 
 const encoder = new TextEncoder();
@@ -31,7 +31,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onIncoming: () => void;
-  onAttachClick?: () => void;
 }
 
 export function ChatPanel({
@@ -43,11 +42,12 @@ export function ChatPanel({
   open,
   onClose,
   onIncoming,
-  onAttachClick,
 }: Props) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const { message, send } = useDataChannel("chat");
 
@@ -136,6 +136,53 @@ export function ChatPanel({
     }).catch(() => {});
   }
 
+  async function uploadFile(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("sessionId", sessionId);
+      if (inviteId) fd.append("inviteId", inviteId);
+      fd.append("senderIdentity", senderIdentity);
+
+      const res = await fetch("/api/files", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+
+      const payload: ChatWirePayload = {
+        kind: "file",
+        body: file.name,
+        senderName,
+        senderRole,
+        fileName: file.name,
+        fileUrl: json.url,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        ts: Date.now(),
+      };
+      broadcast(payload);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${payload.ts}-me`,
+          senderName,
+          senderRole,
+          body: file.name,
+          kind: "file",
+          fileName: file.name,
+          fileUrl: json.url,
+          ts: payload.ts,
+          mine: true,
+        },
+      ]);
+    } catch {
+      /* surfaced by the disabled state resetting; keep chat resilient */
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <aside
       className={`glass h-full flex flex-col transition-all duration-200 overflow-hidden ${
@@ -181,16 +228,25 @@ export function ChatPanel({
       </div>
 
       <form onSubmit={sendMessage} className="p-3 border-t border-panel-border shrink-0 flex gap-2">
-        {onAttachClick && (
-          <button
-            type="button"
-            onClick={onAttachClick}
-            aria-label="Share a file"
-            className="btn btn-ghost px-3 shrink-0"
-          >
-            <Paperclip size={16} />
-          </button>
-        )}
+        <input
+          ref={fileRef}
+          type="file"
+          hidden
+          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadFile(f);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          aria-label="Share a file"
+          className="btn btn-ghost px-3 shrink-0 disabled:opacity-50"
+        >
+          {uploading ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+        </button>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

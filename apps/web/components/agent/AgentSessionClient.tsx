@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { CallRoom } from "@/components/call/CallRoom";
 import { EndSessionButton } from "@/components/call/EndSessionButton";
+import { RecordingControl } from "@/components/call/RecordingControl";
 import { SessionRecord } from "@/components/agent/SessionRecord";
 import { useToast } from "@/components/ui/Toast";
 import type { SessionStatus } from "@/lib/types";
@@ -82,13 +83,16 @@ export function AgentSessionClient({ sessionId, sessionTitle, status, identity, 
       sessionTitle={sessionTitle}
       onLeave={leave}
       agentControls={
-        <EndSessionButton
-          sessionId={sessionId}
-          onEnded={() => {
-            toast("Session ended", "success");
-            setEnded(true);
-          }}
-        />
+        <>
+          <RecordingControl sessionId={sessionId} />
+          <EndSessionButton
+            sessionId={sessionId}
+            onEnded={() => {
+              toast("Session ended", "success");
+              setEnded(true);
+            }}
+          />
+        </>
       }
     />
   );

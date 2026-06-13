@@ -2,6 +2,9 @@
 // through our SFU. Proves agent ↔ customer media routes via LiveKit by asserting
 // each side renders the OTHER side's video with actual frames (videoWidth > 0).
 import { chromium } from "@playwright/test";
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const FAKE = [
@@ -101,6 +104,26 @@ try {
   } else {
     failed = true;
     console.log("❌ CHAT FAILED — message did not arrive on the peer.");
+  }
+
+  // ── File sharing (R17): agent uploads → customer sees the file card ──────
+  const fixture = join(tmpdir(), `clarivue-fixture-${Date.now()}.txt`);
+  writeFileSync(fixture, "ClariVue shared file test.");
+  const fixtureName = fixture.split(/[\\/]/).pop();
+  await agent.locator('input[type="file"]').setInputFiles(fixture);
+  let fileOk = false;
+  try {
+    await cust.getByText(fixtureName, { exact: false }).waitFor({ timeout: 15000 });
+    fileOk = true;
+  } catch {
+    fileOk = false;
+  }
+  log(`file shared to customer: ${fileOk}`);
+  if (fileOk) {
+    console.log("✅ FILE SHARING PASSED — uploaded file delivered to the peer.");
+  } else {
+    failed = true;
+    console.log("❌ FILE SHARING FAILED — file card did not arrive on the peer.");
   }
 } catch (err) {
   failed = true;
