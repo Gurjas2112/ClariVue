@@ -29,17 +29,38 @@ export function AgentSessionClient({ sessionId, sessionTitle, status, identity, 
   useEffect(() => {
     if (ended) return;
     let cancelled = false;
-    fetch("/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
-    })
-      .then(async (r) => {
+
+    async function connectToSession() {
+      // Pre-acquire camera + mic permissions BEFORE connecting to LiveKit.
+      // This forces the browser permission dialog and prevents silent failures.
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        stream.getTracks().forEach((t) => t.stop());
+      } catch {
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioStream.getTracks().forEach((t) => t.stop());
+        } catch {
+          if (!cancelled) setError("Please allow camera and microphone access to join the call");
+          return;
+        }
+      }
+
+      try {
+        const r = await fetch("/api/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
         const json = await r.json();
         if (!r.ok) throw new Error(json.error || "Could not join");
         if (!cancelled) setConn({ token: json.token, url: json.url });
-      })
-      .catch((e) => !cancelled && setError(e.message));
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Could not join");
+      }
+    }
+
+    connectToSession();
     return () => {
       cancelled = true;
     };

@@ -51,6 +51,27 @@ export function JoinClient({ inviteId }: { inviteId: string }) {
     if (!name.trim()) return;
     setJoining(true);
     try {
+      // Pre-acquire camera + mic permissions BEFORE connecting to LiveKit.
+      // This forces the browser permission dialog to appear clearly.
+      // Without this, LiveKitRoom's internal getUserMedia can silently fail
+      // on some browsers (especially mobile), leaving the user with no media.
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        // Release the tracks immediately — LiveKit will re-acquire them.
+        stream.getTracks().forEach((t) => t.stop());
+      } catch (mediaErr) {
+        // If camera fails, try audio-only (user might not have a camera)
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioStream.getTracks().forEach((t) => t.stop());
+          toast("Camera not available — joining with audio only", "info");
+        } catch {
+          toast("Please allow camera and microphone access to join the call", "error");
+          setJoining(false);
+          return;
+        }
+      }
+
       const clientId = getClientId(inviteId);
       const res = await fetch("/api/token", {
         method: "POST",
