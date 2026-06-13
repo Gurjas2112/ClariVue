@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
-import { Plus, Video, Clock, Radio } from "lucide-react";
+import { Plus, Video, Clock, Radio, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +24,7 @@ export function DashboardClient({ initialSessions }: { initialSessions: Session[
   const { toast } = useToast();
   const supabase = createClient();
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [invite, setInvite] = useState<{ session: Session; url: string } | null>(null);
 
   const { data, mutate } = useSWR<{ sessions: Session[] }>("/api/sessions", fetcher, {
@@ -60,6 +61,24 @@ export function DashboardClient({ initialSessions }: { initialSessions: Session[
       toast(err instanceof Error ? err.message : "Could not start session", "error");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function deleteSession(id: string) {
+    if (!confirm("Delete this session and all its data (chat, recordings, events)? This cannot be undone.")) return;
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/sessions/${id}/delete`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Could not delete session");
+      }
+      toast("Session deleted", "success");
+      mutate();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not delete session", "error");
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -143,6 +162,16 @@ export function DashboardClient({ initialSessions }: { initialSessions: Session[
                       >
                         {s.status === "active" ? "Open" : "View record"}
                       </button>
+                      {s.status === "ended" && (
+                        <button
+                          className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
+                          title="Delete session"
+                          disabled={deleting === s.id}
+                          onClick={() => deleteSession(s.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

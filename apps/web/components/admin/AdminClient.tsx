@@ -4,7 +4,7 @@
 // session, and session history. Polls the live snapshot (server caches it 5s).
 import { useState } from "react";
 import useSWR from "swr";
-import { Users, Clock, Radio, Square } from "lucide-react";
+import { Users, Clock, Radio, Square, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { Session } from "@/lib/types";
 
@@ -43,6 +43,7 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
   const live = liveData?.live ?? [];
   const history = histData?.sessions ?? [];
   const [ending, setEnding] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   async function forceEnd(sessionId: string) {
     if (!confirm("Force-end this session for everyone?")) return;
@@ -57,6 +58,21 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
       toast("Could not end session", "error");
     } finally {
       setEnding(null);
+    }
+  }
+
+  async function deleteSession(sessionId: string) {
+    if (!confirm("Delete this session and all its data? This cannot be undone.")) return;
+    setDeleting(sessionId);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/delete`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast("Session deleted", "success");
+      mutateHist();
+    } catch {
+      toast("Could not delete session", "error");
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -119,6 +135,7 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
                 <th className="font-medium px-5 py-3">Session</th>
                 <th className="font-medium px-5 py-3">Started</th>
                 <th className="font-medium px-5 py-3">Status</th>
+                <th className="font-medium px-5 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -130,6 +147,19 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
                     <span className={`pill ${s.status === "active" ? "text-[var(--success)]" : ""}`}>
                       {s.status}
                     </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    {s.status === "ended" && (
+                      <button
+                        type="button"
+                        className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
+                        title="Delete session"
+                        disabled={deleting === s.id}
+                        onClick={() => deleteSession(s.id)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
