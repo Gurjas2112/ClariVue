@@ -7,7 +7,7 @@
 **Real-time, self-hosted video support platform for customer support teams.**
 
 > Built for the **AtomQuest Hackathon 1.0 — Grand Finale**. Full setup + architecture walkthrough in
-> [`WORKFLOW.md`](./WORKFLOW.md); system design + R1–R20 traceability in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+> [`WORKFLOW.md`](./essential_docs/WORKFLOW.md); system design + R1–R20 traceability in [`ARCHITECTURE.md`](./essential_docs/ARCHITECTURE.md).
 
 A support **agent** creates a call session and invites a **customer** via a link. Both join from
 the browser — no install — onto live audio/video routed through **our own media server** (a
@@ -15,7 +15,7 @@ self-hosted [LiveKit](https://livekit.io) SFU, never a third-party hosted video 
 in-call, the agent can record, and every session (presence, chat, files, recording) is persisted
 and reviewable afterward.
 
-> Built for the AtomQuest Hackathon 1.0 Finale. See `ARCHITECTURE.md` for the system design and the
+> Built for the AtomQuest Hackathon 1.0 Finale. See [`ARCHITECTURE.md`](./essential_docs/ARCHITECTURE.md) for the system design and the
 > requirement-by-requirement traceability matrix.
 
 ---
@@ -80,7 +80,7 @@ Browser (Next.js UI + @livekit/components-react)
 
 The app backend is co-located with the UI as Next.js route handlers; the **media plane** (LiveKit +
 Egress + Redis) runs separately so WebRTC's UDP/TCP traffic never touches the app server. Full
-detail and the requirements matrix are in [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+detail and the requirements matrix are in [`ARCHITECTURE.md`](./essential_docs/ARCHITECTURE.md).
 
 **Stack:** Next.js 16 (App Router, TypeScript) · Tailwind v4 · LiveKit (self-hosted SFU + Egress) ·
 Supabase (Postgres, Auth, Storage) · Redis · Prometheus.
@@ -169,7 +169,7 @@ Both run against a server on `http://localhost:3000`.
   them, the call/chat/admin features are fully functional; the Record button reports a clear error.
 - **Reconnect grace window** is fixed at 30s.
 - **Email confirmation is ON** — new signups receive a confirmation link via Gmail SMTP
-  (`gsgbmcc@gmail.com`). See `WORKFLOW.md §11½` for SMTP setup details.
+  (`gsgbmcc@gmail.com`). See [`WORKFLOW.md`](./essential_docs/WORKFLOW.md) (specifically section §11½) for SMTP setup details.
 - **Live deployment** at [clari-vue.vercel.app](https://clari-vue.vercel.app) (app + API + Supabase);
   video media routed through a Cloudflare tunnel to the local LiveKit SFU.
 
@@ -182,8 +182,8 @@ apps/web/        Next.js app — UI + app API (route handlers), LiveKit/Supabase
 infra/           docker-compose + LiveKit/Egress config (local media plane)
 supabase/        SQL migration + seed (schema, RLS, storage buckets)
 scripts/         db apply, demo seed, e2e verification tests
-ARCHITECTURE.md  system design + requirements traceability matrix
-WORKFLOW.md      setup, run, architecture, PS-requirement coverage
+essential_docs/ARCHITECTURE.md  system design + requirements traceability matrix
+essential_docs/WORKFLOW.md      setup, run, architecture, PS-requirement coverage
 ```
 
 ---
