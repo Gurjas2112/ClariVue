@@ -13,7 +13,9 @@ const FAKE = [
   "--autoplay-policy=no-user-gesture-required",
 ];
 
-const agentEmail = `gate+${Date.now()}@clarivue.test`;
+// Email confirmation is required, so we log in as the pre-confirmed demo agent
+// (a fresh signup would land on the "check your email" screen, not the dashboard).
+const agentEmail = "agent@clarivue.demo";
 const password = "clarivue123";
 
 function log(...a) {
@@ -30,19 +32,19 @@ async function countLiveVideos(page) {
 const browser = await chromium.launch({ args: FAKE });
 let failed = false;
 try {
-  // ── Agent: sign up → create session → grab invite → open call ──────────
+  // ── Agent: log in → create session → grab invite → open call ───────────
   const agentCtx = await browser.newContext({ permissions: ["camera", "microphone"] });
   const agent = await agentCtx.newPage();
   agent.setDefaultTimeout(45000);
   agent.setDefaultNavigationTimeout(60000);
 
-  log("agent signup", agentEmail);
-  await agent.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
+  log("agent login", agentEmail);
+  await agent.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await agent.fill('input[type="email"]', agentEmail);
   await agent.fill('input[type="password"]', password);
   await agent.click('button[type="submit"]');
 
-  await agent.waitForURL("**/agent/dashboard", { timeout: 20000 });
+  await agent.waitForURL("**/agent/dashboard", { timeout: 25000 });
   log("agent on dashboard");
 
   await agent.getByRole("button", { name: /start support session/i }).first().click();

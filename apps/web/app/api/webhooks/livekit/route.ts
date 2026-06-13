@@ -3,6 +3,7 @@
 // presence (session_participants), the event log (session_events), recording
 // lifecycle (recordings), and funnels all cache invalidation.
 import { NextResponse } from "next/server";
+import { EgressStatus } from "livekit-server-sdk";
 import { webhookReceiver } from "@/lib/livekit/webhook";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { invalidate, K } from "@/lib/cache";
@@ -29,6 +30,39 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
+
+  // Egress (recording) events DON'T populate event.room — the room/egress id live in
+  // event.egressInfo. Resolve the recording by egress_id so the lifecycle actually
+  // advances (in_progress → ready/failed) instead of being dropped by the room guard.
+  if (event.event.startsWith("egress_")) {
+    const info = event.egressInfo;
+    if (!info?.egressId) return NextResponse.json({ ok: true });
+
+    const { data: rec } = await admin
+      .from("recordings")
+      .select("id, session_id")
+      .eq("egress_id", info.egressId)
+      .maybeSingle();
+    if (!rec) return NextResponse.json({ ok: true });
+
+    let status: "in_progress" | "ready" | "failed" = "in_progress";
+    const patch: Record<string, unknown> = {};
+    if (event.event === "egress_ended") {
+      const complete = info.status === EgressStatus.EGRESS_COMPLETE;
+      status = complete ? "ready" : "failed";
+      if (complete) patch.ready_at = new Date().toISOString();
+    }
+
+    await admin.from("recordings").update({ status, ...patch }).eq("id", rec.id);
+    await admin.from("session_events").insert({
+      session_id: rec.session_id,
+      type: event.event,
+      metadata: { egressId: info.egressId, status: String(info.status) },
+    });
+    await invalidate(K.recording(rec.session_id));
+    return NextResponse.json({ ok: true });
+  }
+
   const roomName = event.room?.name;
   if (!roomName) return NextResponse.json({ ok: true });
 
@@ -117,30 +151,7 @@ export async function POST(request: Request) {
       break;
     }
 
-    case "egress_started":
-    case "egress_updated":
-    case "egress_ended": {
-      const info = event.egressInfo;
-      if (info) {
-        const ended = event.event === "egress_ended";
-        // On egress_ended the MP4 is uploaded to Supabase Storage → ready (R16).
-        await admin
-          .from("recordings")
-          .update(
-            ended
-              ? { status: "ready", ready_at: new Date().toISOString() }
-              : { status: "in_progress" },
-          )
-          .eq("egress_id", info.egressId);
-        await admin.from("session_events").insert({
-          session_id: sid,
-          type: event.event,
-          metadata: { egressId: info.egressId, status: String(info.status) },
-        });
-      }
-      await invalidate(K.recording(sid));
-      break;
-    }
+    // egress_* events are handled earlier (they carry egressInfo, not event.room).
 
     default:
       break;
