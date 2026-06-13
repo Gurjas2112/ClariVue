@@ -128,6 +128,31 @@ sequenceDiagram
   API->>DB: upsert participants + events
 ```
 
+### Agent authentication & email confirmation
+
+```mermaid
+sequenceDiagram
+  participant U as Agent (browser)
+  participant API as Next.js API
+  participant SB as Supabase Auth
+  participant Email as Gmail SMTP
+  participant CB as /auth/callback
+
+  U->>API: POST /api/auth/signup {email, password}
+  API->>SB: supabase.auth.signUp()
+  SB->>Email: confirmation email (link with token_hash + type)
+  API->>SB: profiles.upsert (role=agent)
+  API-->>U: {confirmationSent: true}
+
+  U->>Email: clicks confirmation link
+  Email-->>CB: GET /auth/callback?token_hash=…&type=signup
+  CB->>SB: supabase.auth.verifyOtp({token_hash, type})
+  SB-->>CB: session established
+  CB-->>U: redirect → /agent/dashboard
+
+  Note over CB: Also handles PKCE code flow<br/>(code param instead of token_hash)
+```
+
 ### Token minting — the single enforcement point (R13–R15)
 All role logic lives in `POST /api/token`:
 - **Agent path:** requires a Supabase-verified user who owns the session (or admin) → grants
@@ -151,6 +176,8 @@ reflects each transition; download is a short-lived signed Storage URL.
 `profiles · sessions · session_participants · session_events · chat_messages · shared_files ·
 recordings` (see `supabase/migrations/0001_init.sql`).
 
+- `profiles` mirrors `auth.users` — one row per authenticated agent/admin with `id`, `email`,
+  `role`, `created_at`. Used for role checks, auth metrics, and the admin user table.
 - `sessions` carry a unique `room_name` and an opaque `invite_id`.
 - `session_participants` track presence with `joined_at` / `left_at` / `disconnected_at` /
   `reconnect_count` (the reconnect grace window).
@@ -169,6 +196,23 @@ recordings` (see `supabase/migrations/0001_init.sql`).
   unguessable random tokens. File uploads are mime/size-checked, stored per-session, served via
   signed URLs.
 
+### Customer invite security — why no authentication is required
+
+Customers join sessions via an **invite link** (`/join/{inviteId}`). No Supabase account or login is
+needed. This is secure by design:
+
+| Defence | Detail |
+|---------|--------|
+| **Unguessable invite** | The `inviteId` is 16 random bytes (base64url, ~22 chars), equivalent to 128 bits of entropy. Brute-forcing is cryptographically infeasible. |
+| **Time-limited** | The invite is only valid while the session status is `active`. Once the agent (or admin) ends the session, the invite is dead — no dangling links. |
+| **Minimal privileges** | A customer token grants `roomJoin` + publish/subscribe only — no `roomAdmin`, no `roomCreate`, no data deletion. |
+| **Namespaced identity** | Customer identities are prefixed `customer-` and cannot impersonate an `agent-` identity. |
+| **Server-side validation** | Every customer action (join, chat, file upload) is validated on the server by checking the invite before using the service key. The browser never gets a Supabase auth token. |
+| **No sensitive data exposure** | The invite preview endpoint (`GET /api/invite/{id}`) returns only `{valid, title}` — no session IDs, agent info, or internal data. |
+
+This matches industry practice: Google Meet, Zoom, and Microsoft Teams all use link-based joining
+without requiring the guest to create an account.
+
 ---
 
 ## 4. Caching
@@ -181,7 +225,31 @@ state changes), so the cache can't silently drift. Authenticated/token responses
 
 ---
 
-## 5. Requirements traceability
+## 5. Admin dashboard & auth metrics
+
+The admin dashboard (`/admin`) provides two categories of operational visibility:
+
+### Session operations (R19)
+- **Live sessions**: real-time view of all active LiveKit rooms with participant list, duration,
+  and a force-end button. Polled every 3 seconds via `/api/admin/live`.
+- **Session history**: all sessions (newest first) with status, timestamps, and delete actions.
+  Polled every 10 seconds via `/api/sessions`.
+
+### User authentication metrics
+- **Stat cards**: total users, agents, admins, signups (last 7 days), email confirmation rate,
+  active sessions — all fetched from the `profiles` table and `auth.users` via the service-role
+  client.
+- **Session summary bar**: 30-day signups, total/active/ended sessions, unconfirmed user count.
+- **Recent users table**: last 15 registrations with email, role, confirmation status (confirmed
+  vs pending), and relative join time.
+
+All auth metrics are served by `GET /api/admin/auth-metrics` (admin-only, polled every 30 seconds)
+using the Supabase admin API to read `auth.users` for confirmation status and the `profiles` table
+for role/count data.
+
+---
+
+## 6. Requirements traceability
 
 | # | Requirement | Type | Where | Status |
 |---|---|---|---|---|
@@ -203,7 +271,7 @@ state changes), so the cache can't silently drift. Authenticated/token responses
 | R16 | Recording: start/stop, status, download | B | Egress + `recordings` + signed URL | ✅ built (needs S3 keys to capture) |
 | R17 | File sharing in chat | B | Storage + `shared_files` + signed URLs | ✅ verified |
 | R18 | Reconnect grace, silent re-entry | B | `disconnected_at` + grace in webhook | ✅ built |
-| R19 | Admin dashboard: live, history, force-end | B | `/admin` + `RoomServiceClient` | ✅ verified |
+| R19 | Admin dashboard: live, history, force-end, **auth metrics** | B | `/admin` + `RoomServiceClient` + `/api/admin/auth-metrics` | ✅ verified |
 | R20 | Observability metrics | B | `/api/metrics` (Prometheus) | ✅ verified |
 
 MH = must-have, B = bonus. "verified" = exercised by an automated two-browser test or a direct check
@@ -211,7 +279,7 @@ MH = must-have, B = bonus. "verified" = exercised by an automated two-browser te
 
 ---
 
-## 6. Technology choices
+## 7. Technology choices
 
 | Layer | Choice | Why |
 |---|---|---|

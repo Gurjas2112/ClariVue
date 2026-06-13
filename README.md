@@ -30,7 +30,8 @@ and reviewable afterward.
 - **Agent flow:** log in → **Start support session** → copy the invite link → open it in a second
   browser/incognito window → join as the customer. Both see and hear each other.
 - **Ready-made invite link:** `/join/demo-call` (a pre-seeded active session owned by the demo agent).
-- **Admin flow:** log in as admin → **Admin** (top-right) → live sessions, participants, force-end.
+- **Admin flow:** log in as admin → **Admin** (top-right) → view auth metrics (user counts, signups,
+  confirmation status), live sessions, participants, force-end.
 
 Anyone can also sign up a fresh agent account at `/signup` — a confirmation email will be sent
 via Gmail SMTP; click the link to activate, then sign in.
@@ -58,9 +59,13 @@ via Gmail SMTP; click the link to activate, then sign in.
   in the session record.
 - **Reconnect grace** — a dropped participant who returns within 30s re-enters silently (identity
   persisted; the re-join is not surfaced as a new join).
-- **Admin dashboard** — live sessions with participants & duration, history, force-end any session.
+- **Admin dashboard** — live sessions with participants & duration, history, force-end any session,
+  **plus real user authentication metrics**: total users, agents, admins, 7d/30d signups, email
+  confirmation rate, and a recent users table with confirmation status.
 - **Observability** — Prometheus metrics at `/api/metrics` (active sessions, connected
   participants, live rooms, errors); LiveKit exposes its own metrics too.
+- **Email confirmation** — new agent signups receive a confirmation email via custom Gmail SMTP;
+  the auth callback handles both PKCE code exchange and Supabase's token_hash OTP verification.
 
 ---
 
@@ -84,6 +89,21 @@ detail and the requirements matrix are in [`ARCHITECTURE.md`](./essential_docs/A
 
 **Stack:** Next.js 16 (App Router, TypeScript) · Tailwind v4 · LiveKit (self-hosted SFU + Egress) ·
 Supabase (Postgres, Auth, Storage) · Redis · Prometheus.
+
+---
+
+## Customer invite security
+
+Customers join via an **invite link** (`/join/{inviteId}`) — **no account needed**. This is secure
+because:
+
+- The invite is a **128-bit random token** (cryptographically unguessable)
+- It's only valid while the session is **active** (auto-expires on end)
+- Customers get **zero admin privileges** — join + participate only
+- Identity is **namespaced** (`customer-…`) — can't impersonate agents
+- All validation happens **server-side** before minting a LiveKit token
+
+This matches Google Meet, Zoom, and Teams — guests join by link, no signup required.
 
 ---
 

@@ -1,10 +1,24 @@
 "use client";
 
 // Ops dashboard (R19): live sessions with participants + duration, force-end any
-// session, and session history. Polls the live snapshot (server caches it 5s).
+// session, session history, AND real user authentication metrics (signups,
+// confirmation status, role breakdown). Polls live snapshot (3s) and auth (30s).
 import { useState } from "react";
 import useSWR from "swr";
-import { Users, Clock, Radio, Square, Trash2 } from "lucide-react";
+import {
+  Users,
+  Clock,
+  Radio,
+  Square,
+  Trash2,
+  UserPlus,
+  Shield,
+  ShieldCheck,
+  Activity,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+} from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { Session } from "@/lib/types";
 
@@ -19,12 +33,43 @@ interface LiveRoom {
   participants: { identity: string; name: string; role: string; joinedAt: number }[];
 }
 
+interface AuthMetrics {
+  totalUsers: number;
+  totalAgents: number;
+  totalAdmins: number;
+  confirmedUsers: number;
+  unconfirmedUsers: number;
+  signupsLast7d: number;
+  signupsLast30d: number;
+  totalSessions: number;
+  activeSessions: number;
+  endedSessions: number;
+  recentUsers: {
+    id: string;
+    email: string;
+    role: string;
+    confirmed: boolean;
+    created_at: string;
+  }[];
+}
+
 function since(iso: string | null): string {
   if (!iso) return "—";
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.floor(ms / 60000);
   const s = Math.floor((ms % 60000) / 1000);
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
 }
 
 export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
@@ -38,6 +83,11 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
     "/api/sessions",
     fetcher,
     { fallbackData: { sessions: initialHistory }, refreshInterval: 10000 },
+  );
+  const { data: authMetrics } = useSWR<AuthMetrics>(
+    "/api/admin/auth-metrics",
+    fetcher,
+    { refreshInterval: 30000 },
   );
 
   const live = liveData?.live ?? [];
@@ -76,11 +126,134 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
     }
   }
 
+  const confirmRate = authMetrics
+    ? authMetrics.totalUsers > 0
+      ? Math.round((authMetrics.confirmedUsers / (authMetrics.confirmedUsers + authMetrics.unconfirmedUsers)) * 100)
+      : 0
+    : null;
+
   return (
     <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
       <h1 className="text-2xl font-medium tracking-tight">Operations</h1>
-      <p className="text-fg-muted text-sm mt-1 mb-8">Live sessions and full history.</p>
+      <p className="text-fg-muted text-sm mt-1 mb-8">Live sessions, user authentication metrics, and full history.</p>
 
+      {/* ── Auth metrics section ──────────────────────────────────────────── */}
+      <section className="mb-12">
+        <h2 className="text-sm font-medium text-fg-muted mb-4 flex items-center gap-2">
+          <Shield size={14} /> User Authentication
+        </h2>
+
+        {/* Stat cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <StatCard
+            icon={<Users size={16} />}
+            label="Total Users"
+            value={authMetrics?.totalUsers}
+            color="var(--accent)"
+          />
+          <StatCard
+            icon={<ShieldCheck size={16} />}
+            label="Agents"
+            value={authMetrics?.totalAgents}
+            color="var(--cyan)"
+          />
+          <StatCard
+            icon={<Shield size={16} />}
+            label="Admins"
+            value={authMetrics?.totalAdmins}
+            color="var(--amber)"
+          />
+          <StatCard
+            icon={<UserPlus size={16} />}
+            label="Signups (7d)"
+            value={authMetrics?.signupsLast7d}
+            color="var(--success)"
+          />
+          <StatCard
+            icon={<CheckCircle2 size={16} />}
+            label="Confirmed"
+            value={confirmRate !== null ? `${confirmRate}%` : undefined}
+            color="var(--success)"
+          />
+          <StatCard
+            icon={<Activity size={16} />}
+            label="Active Sessions"
+            value={authMetrics?.activeSessions}
+            color="var(--danger)"
+          />
+        </div>
+
+        {/* Session stats bar */}
+        {authMetrics && (
+          <div className="card p-4 mb-6 flex flex-wrap items-center gap-6 text-sm">
+            <span className="text-fg-muted flex items-center gap-1.5">
+              <TrendingUp size={13} /> Signups (30d):
+              <span className="text-fg font-medium">{authMetrics.signupsLast30d}</span>
+            </span>
+            <span className="text-fg-muted flex items-center gap-1.5">
+              Total sessions:
+              <span className="text-fg font-medium">{authMetrics.totalSessions}</span>
+            </span>
+            <span className="text-fg-muted flex items-center gap-1.5">
+              Active:
+              <span className="text-[var(--success)] font-medium">{authMetrics.activeSessions}</span>
+            </span>
+            <span className="text-fg-muted flex items-center gap-1.5">
+              Ended:
+              <span className="text-fg font-medium">{authMetrics.endedSessions}</span>
+            </span>
+            <span className="text-fg-muted flex items-center gap-1.5">
+              Unconfirmed:
+              <span className="text-[var(--amber)] font-medium">{authMetrics.unconfirmedUsers}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Recent users table */}
+        {authMetrics && authMetrics.recentUsers.length > 0 && (
+          <div className="card overflow-hidden">
+            <div className="px-5 py-3 border-b border-panel-border">
+              <span className="text-sm font-medium text-fg-muted">Recent Users</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-fg-subtle border-b border-panel-border">
+                  <th className="font-medium px-5 py-2.5">Email</th>
+                  <th className="font-medium px-5 py-2.5">Role</th>
+                  <th className="font-medium px-5 py-2.5">Status</th>
+                  <th className="font-medium px-5 py-2.5">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {authMetrics.recentUsers.map((u) => (
+                  <tr key={u.id} className="border-b border-panel-border last:border-0">
+                    <td className="px-5 py-3 font-medium">{u.email}</td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`pill ${u.role === "admin" ? "text-[var(--amber)]" : "text-[var(--cyan)]"}`}
+                      >
+                        {u.role === "admin" ? <Shield size={11} /> : <ShieldCheck size={11} />}
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`pill ${u.confirmed ? "text-[var(--success)]" : "text-[var(--amber)]"}`}
+                      >
+                        {u.confirmed ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                        {u.confirmed ? "confirmed" : "pending"}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-fg-muted">{timeAgo(u.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* ── Live sessions section ─────────────────────────────────────────── */}
       <section className="mb-12">
         <h2 className="text-sm font-medium text-fg-muted mb-3 flex items-center gap-2">
           <span className="live-dot" /> Live now ({live.length})
@@ -126,6 +299,7 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
         )}
       </section>
 
+      {/* ── History section ────────────────────────────────────────────────── */}
       <section>
         <h2 className="text-sm font-medium text-fg-muted mb-3">History ({history.length})</h2>
         <div className="card overflow-hidden">
@@ -168,5 +342,30 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
         </div>
       </section>
     </main>
+  );
+}
+
+/* ── Stat card sub-component ─────────────────────────────────────────────── */
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: number | string;
+  color: string;
+}) {
+  return (
+    <div className="card p-4 flex flex-col gap-2" id={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+      <div className="flex items-center gap-2 text-fg-subtle text-xs">
+        <span style={{ color }}>{icon}</span>
+        {label}
+      </div>
+      <span className="text-xl font-semibold tracking-tight" style={{ color }}>
+        {value ?? <span className="text-fg-subtle animate-pulse">—</span>}
+      </span>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 # ClariVue — Workflow, Setup & System Design
 
 <p align="center">
-  <img src="essential_docs/atomberg_logo.png" alt="Atomberg" height="46" />
+  <img src="essential_docs/atomquest_hackathon_finale_logo.png" alt="AtomQuest Hackathon" height="46" />
 </p>
 
 <p align="center"><b>Real-time, self-hosted video support platform</b> · Built for the AtomQuest Hackathon 1.0 Grand Finale</p>
@@ -48,7 +48,7 @@ self-hosting a **LiveKit** SFU that we run ourselves and point clients at direct
 | **Bonus** | Recording (start/stop/status/download) | LiveKit Egress → Supabase Storage; status pill + signed URL |
 | | File sharing in chat | server-mediated upload → Storage → in-chat card + record |
 | | Reconnect grace | `disconnected_at` + 30s window + suppressed re-join in webhook |
-| | Admin dashboard | `/admin` live sessions + participants + force-end + history |
+| | Admin dashboard (sessions + auth metrics) | `/admin` live sessions + participants + force-end + history + real user auth metrics |
 | | Observability | `/api/metrics` Prometheus exposition |
 
 ---
@@ -198,7 +198,7 @@ node scripts/admin-test.mjs        # admin access control + dashboard render
 3. Toggle mute / camera; share your screen.
 4. Exchange a chat message; share an image/PDF (appears as a card both sides).
 5. *(Recording enabled)* agent hits **Record** → pill goes live → **Stop** → Processing → Ready → download.
-6. Open `/admin` (as admin) → see the live session → **Force end**.
+6. Open `/admin` (as admin) → see auth metrics (user counts, signups, confirmation status) + live sessions → **Force end**.
 7. Agent ends the call → open the session record → chat transcript, shared file, participants, events.
 
 **Demo credentials:** agent `agent@clarivue.demo` / `clarivue123` · admin `admin@clarivue.demo` /
@@ -251,7 +251,7 @@ Keep `docker compose -f infra/docker-compose.yml --profile recording up -d` runn
 
 ---
 
-## 11½. Email confirmation & SMTP
+## 12. Email confirmation & SMTP
 
 Agent signup requires email confirmation. Supabase sends a confirmation link via **custom Gmail
 SMTP** — configured server-side on the Supabase project, never stored in git.
@@ -260,7 +260,17 @@ SMTP** — configured server-side on the Supabase project, never stored in git.
 
 1. Agent fills out `/signup` → `POST /api/auth/signup` calls `supabase.auth.signUp()`.
 2. Supabase sends a confirmation email from `ClariVue <gsgbmcc@gmail.com>` via Gmail SMTP.
-3. Agent clicks the link → redirected to `/auth/callback` → code exchanged for session → dashboard.
+3. Agent clicks the link → redirected to `/auth/callback`.
+4. The callback handler supports **two verification paths**:
+   - **PKCE code exchange**: if the URL contains a `code` param, exchanges it for a session via
+     `supabase.auth.exchangeCodeForSession(code)`.
+   - **Token-hash OTP verification**: if the URL contains `token_hash` + `type` params (the default
+     Supabase email confirmation flow), verifies via `supabase.auth.verifyOtp({token_hash, type})`.
+5. On success → session cookie set → redirect to `/agent/dashboard`.
+
+This dual-path handling ensures the confirmation works regardless of the Supabase project's PKCE
+configuration, resolving the previous `confirmation_failed` error that occurred when Supabase sent
+`token_hash`-style confirmation links but the callback only handled `code`-style exchanges.
 
 ### Current SMTP config (set via Supabase Management API)
 
@@ -295,7 +305,53 @@ curl -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
 
 ---
 
+## 13. Customer invite security
+
+Customers join sessions via a **shared invite link** (`/join/{inviteId}`). **No account or login is
+required.** This is secure by design:
+
+- **Unguessable invite**: the `inviteId` is 16 random bytes (base64url, ~22 chars) — 128 bits of
+  entropy. Brute-forcing is cryptographically infeasible.
+- **Time-limited**: the invite is only valid while the session is `active`. Once ended, the link is
+  dead.
+- **Minimal privileges**: a customer token grants only `roomJoin` + publish/subscribe — no admin
+  actions, no session creation, no data deletion.
+- **Namespaced identity**: customers are prefixed `customer-` and cannot impersonate an `agent-`
+  identity.
+- **Server-side validation**: every customer action goes through server routes that validate the
+  invite before acting. The browser never receives a Supabase auth token.
+- **No data leakage**: the invite preview (`GET /api/invite/{id}`) exposes only `{valid, title}` —
+  no session IDs, agent info, or internal data.
+
+This matches industry practice — Google Meet, Zoom, and Microsoft Teams all allow guests to join
+via link without creating an account.
+
+---
+
+## 14. Admin dashboard — auth metrics
+
+The ops dashboard at `/admin` (admin-only) now includes a **User Authentication** section
+alongside the existing live sessions and history views:
+
+### Metrics displayed
+
+| Metric | Source | Refresh |
+|--------|--------|---------|
+| Total registered users | `profiles` (count) | 30s |
+| Agents / Admins | `profiles` (role filter) | 30s |
+| Signups (7d / 30d) | `profiles` (created_at filter) | 30s |
+| Email confirmation rate | `auth.admin.listUsers()` — `email_confirmed_at` | 30s |
+| Active / ended sessions | `sessions` (status filter) | 30s |
+| Recent users table | `profiles` × `auth.users` (last 15, confirmation status) | 30s |
+
+### API endpoint
+
+`GET /api/admin/auth-metrics` — admin-only, returns the full `AuthMetrics` payload. Uses the
+service-role Supabase client to read `auth.users` (for email confirmation timestamps) and the
+`profiles` table (for role counts and registration dates).
+
+---
+
 <p align="center">
-  <img src="essential_docs/my_photo.jpeg" alt="Gurjas Gandhi" width="64" height="64" style="border-radius:50%" /><br/>
   <b>Gurjas Gandhi</b> · ClariVue
 </p>
