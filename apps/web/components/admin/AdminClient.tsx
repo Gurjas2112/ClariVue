@@ -133,9 +133,9 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
     : null;
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-      <h1 className="text-2xl font-medium tracking-tight">Operations</h1>
-      <p className="text-fg-muted text-sm mt-1 mb-8">Live sessions, user authentication metrics, and full history.</p>
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
+      <h1 className="text-xl sm:text-2xl font-medium tracking-tight">Operations</h1>
+      <p className="text-fg-muted text-sm mt-1 mb-6 sm:mb-8">Live sessions, user authentication metrics, and full history.</p>
 
       {/* ── Auth metrics section ──────────────────────────────────────────── */}
       <section className="mb-12">
@@ -212,43 +212,45 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
         {/* Recent users table */}
         {authMetrics && authMetrics.recentUsers.length > 0 && (
           <div className="card overflow-hidden">
-            <div className="px-5 py-3 border-b border-panel-border">
+            <div className="px-4 sm:px-5 py-3 border-b border-panel-border">
               <span className="text-sm font-medium text-fg-muted">Recent Users</span>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-fg-subtle border-b border-panel-border">
-                  <th className="font-medium px-5 py-2.5">Email</th>
-                  <th className="font-medium px-5 py-2.5">Role</th>
-                  <th className="font-medium px-5 py-2.5">Status</th>
-                  <th className="font-medium px-5 py-2.5">Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {authMetrics.recentUsers.map((u) => (
-                  <tr key={u.id} className="border-b border-panel-border last:border-0">
-                    <td className="px-5 py-3 font-medium">{u.email}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`pill ${u.role === "admin" ? "text-[var(--amber)]" : "text-[var(--cyan)]"}`}
-                      >
-                        {u.role === "admin" ? <Shield size={11} /> : <ShieldCheck size={11} />}
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`pill ${u.confirmed ? "text-[var(--success)]" : "text-[var(--amber)]"}`}
-                      >
-                        {u.confirmed ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
-                        {u.confirmed ? "confirmed" : "pending"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-fg-muted">{timeAgo(u.created_at)}</td>
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-subtle border-b border-panel-border">
+                    <th className="font-medium px-4 sm:px-5 py-2.5">Email</th>
+                    <th className="font-medium px-4 sm:px-5 py-2.5">Role</th>
+                    <th className="font-medium px-4 sm:px-5 py-2.5 hidden sm:table-cell">Status</th>
+                    <th className="font-medium px-4 sm:px-5 py-2.5 hidden md:table-cell">Joined</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {authMetrics.recentUsers.map((u) => (
+                    <tr key={u.id} className="border-b border-panel-border last:border-0">
+                      <td className="px-4 sm:px-5 py-3 font-medium truncate max-w-[200px]">{u.email}</td>
+                      <td className="px-4 sm:px-5 py-3">
+                        <span
+                          className={`pill ${u.role === "admin" ? "text-[var(--amber)]" : "text-[var(--cyan)]"}`}
+                        >
+                          {u.role === "admin" ? <Shield size={11} /> : <ShieldCheck size={11} />}
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-5 py-3 hidden sm:table-cell">
+                        <span
+                          className={`pill ${u.confirmed ? "text-[var(--success)]" : "text-[var(--amber)]"}`}
+                        >
+                          {u.confirmed ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                          {u.confirmed ? "confirmed" : "pending"}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-5 py-3 text-fg-muted hidden md:table-cell">{timeAgo(u.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>
@@ -261,7 +263,7 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
         {live.length === 0 ? (
           <div className="card p-8 text-center text-fg-subtle text-sm">No live sessions right now.</div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {live.map((r) => (
               <div key={r.room} className="card p-5">
                 <div className="flex items-start justify-between mb-3">
@@ -303,42 +305,44 @@ export function AdminClient({ initialHistory }: { initialHistory: Session[] }) {
       <section>
         <h2 className="text-sm font-medium text-fg-muted mb-3">History ({history.length})</h2>
         <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-fg-subtle border-b border-panel-border">
-                <th className="font-medium px-5 py-3">Session</th>
-                <th className="font-medium px-5 py-3">Started</th>
-                <th className="font-medium px-5 py-3">Status</th>
-                <th className="font-medium px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((s) => (
-                <tr key={s.id} className="border-b border-panel-border last:border-0">
-                  <td className="px-5 py-3.5 font-medium">{s.title || "Support session"}</td>
-                  <td className="px-5 py-3.5 text-fg-muted">{new Date(s.created_at).toLocaleString()}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`pill ${s.status === "active" ? "text-[var(--success)]" : ""}`}>
-                      {s.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    {s.status === "ended" && (
-                      <button
-                        type="button"
-                        className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
-                        title="Delete session"
-                        disabled={deleting === s.id}
-                        onClick={() => deleteSession(s.id)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </td>
+          <div className="table-wrap">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-fg-subtle border-b border-panel-border">
+                  <th className="font-medium px-4 sm:px-5 py-3">Session</th>
+                  <th className="font-medium px-4 sm:px-5 py-3 hidden sm:table-cell">Started</th>
+                  <th className="font-medium px-4 sm:px-5 py-3">Status</th>
+                  <th className="font-medium px-4 sm:px-5 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {history.map((s) => (
+                  <tr key={s.id} className="border-b border-panel-border last:border-0">
+                    <td className="px-4 sm:px-5 py-3.5 font-medium">{s.title || "Support session"}</td>
+                    <td className="px-4 sm:px-5 py-3.5 text-fg-muted hidden sm:table-cell">{new Date(s.created_at).toLocaleString()}</td>
+                    <td className="px-4 sm:px-5 py-3.5">
+                      <span className={`pill ${s.status === "active" ? "text-[var(--success)]" : ""}`}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-5 py-3.5 text-right">
+                      {s.status === "ended" && (
+                        <button
+                          type="button"
+                          className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
+                          title="Delete session"
+                          disabled={deleting === s.id}
+                          onClick={() => deleteSession(s.id)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </main>

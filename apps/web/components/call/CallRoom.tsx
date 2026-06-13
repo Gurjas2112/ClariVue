@@ -59,15 +59,15 @@ export function CallRoom({
       className="flex-1 flex flex-col"
       style={{ background: "transparent" }}
     >
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col sm:flex-row min-h-0 relative">
         {/* Stage */}
-        <div className="relative flex-1 flex flex-col min-w-0 p-3 sm:p-4">
+        <div className="relative flex-1 flex flex-col min-w-0 p-2 sm:p-3 md:p-4">
           <ConnectionBanner />
 
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center justify-between mb-2 sm:mb-3 px-1">
             <div className="flex items-center gap-2 min-w-0">
               <span className="live-dot shrink-0" />
-              <span className="font-medium truncate">{sessionTitle}</span>
+              <span className="font-medium truncate text-sm sm:text-base">{sessionTitle}</span>
             </div>
             <StatusPills />
           </div>
@@ -77,7 +77,7 @@ export function CallRoom({
           </div>
 
           {/* Floating controls */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20">
+          <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-20 w-auto max-w-[calc(100%-1rem)]">
             <ControlBar
               chatOpen={chatOpen}
               onToggleChat={toggleChat}
@@ -88,17 +88,28 @@ export function CallRoom({
           </div>
         </div>
 
-        {/* Chat */}
-        <ChatPanel
-          sessionId={sessionId}
-          inviteId={inviteId}
-          senderIdentity={senderIdentity}
-          senderName={senderName}
-          senderRole={role}
-          open={chatOpen}
-          onClose={() => setChatOpen(false)}
-          onIncoming={() => setUnread((n) => n + 1)}
-        />
+        {/* Chat — side panel on desktop, overlay sheet on mobile */}
+        <div
+          className={`
+            ${chatOpen ? "flex" : "hidden"}
+            sm:flex
+            ${chatOpen ? "sm:w-[340px]" : "sm:w-0 sm:opacity-0"}
+            absolute inset-0 sm:relative sm:inset-auto
+            z-30 sm:z-auto
+            transition-all duration-200
+          `}
+        >
+          <ChatPanel
+            sessionId={sessionId}
+            inviteId={inviteId}
+            senderIdentity={senderIdentity}
+            senderName={senderName}
+            senderRole={role}
+            open={chatOpen}
+            onClose={() => setChatOpen(false)}
+            onIncoming={() => setUnread((n) => n + 1)}
+          />
+        </div>
       </div>
 
       <RoomAudioRenderer />

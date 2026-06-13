@@ -174,3 +174,23 @@ body {
   --lk-accent-bg: var(--accent);
   --lk-accent-fg: #fff;
 }
+
+/* ── Mobile-responsive utilities ─────────────────────────────────────────── */
+
+/* Safe area insets for notched devices (iPhone, etc.) */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Horizontally scrollable tables on mobile */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* On small screens, the chat panel overlays the video as a bottom sheet */
+@media (max-width: 639px) {
+  .btn { font-size: 0.85rem; padding: 0.55rem 0.85rem; }
+  .field { font-size: 1rem; /* prevents iOS zoom on focus */ }
+}
+

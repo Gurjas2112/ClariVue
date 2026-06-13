@@ -83,21 +83,21 @@ export function DashboardClient({ initialSessions }: { initialSessions: Session[
   }
 
   return (
-    <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10">
-      <div className="flex items-start justify-between gap-4 mb-8">
+    <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-medium tracking-tight">Support sessions</h1>
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight">Support sessions</h1>
           <p className="text-fg-muted text-sm mt-1">
             Start a session, then share the invite link with your customer.
           </p>
         </div>
-        <Button onClick={startSession} loading={creating} className="px-5 py-3">
+        <Button onClick={startSession} loading={creating} className="px-5 py-3 w-full sm:w-auto shrink-0">
           <Plus size={17} /> Start support session
         </Button>
       </div>
 
       {sessions.length === 0 ? (
-        <div className="card p-12 text-center">
+        <div className="card p-8 sm:p-12 text-center">
           <span className="grid place-items-center w-14 h-14 rounded-2xl bg-accent/12 text-accent mx-auto mb-5">
             <Video size={24} />
           </span>
@@ -111,74 +111,134 @@ export function DashboardClient({ initialSessions }: { initialSessions: Session[
           </Button>
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-fg-subtle border-b border-panel-border">
-                <th className="font-medium px-5 py-3">Session</th>
-                <th className="font-medium px-5 py-3">Started</th>
-                <th className="font-medium px-5 py-3">Duration</th>
-                <th className="font-medium px-5 py-3">Status</th>
-                <th className="font-medium px-5 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => (
-                <tr key={s.id} className="border-b border-panel-border last:border-0">
-                  <td className="px-5 py-4 font-medium">{s.title || "Support session"}</td>
-                  <td className="px-5 py-4 text-fg-muted">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock size={13} /> {new Date(s.created_at).toLocaleString()}
+        <>
+          {/* Mobile card layout */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {sessions.map((s) => (
+              <div key={s.id} className="card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-medium text-sm truncate mr-2">{s.title || "Support session"}</span>
+                  {s.status === "active" ? (
+                    <span className="pill text-[var(--success)] shrink-0">
+                      <Radio size={12} /> active
                     </span>
-                  </td>
-                  <td className="px-5 py-4 text-fg-muted">{fmtDuration(s.created_at, s.ended_at)}</td>
-                  <td className="px-5 py-4">
-                    {s.status === "active" ? (
-                      <span className="pill text-[var(--success)]">
-                        <Radio size={12} /> active
-                      </span>
-                    ) : (
-                      <span className="pill">ended</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      {s.status === "active" && (
-                        <button
-                          className="btn btn-ghost px-3 py-1.5 text-sm"
-                          onClick={() =>
-                            setInvite({
-                              session: s,
-                              url: `${window.location.origin}/join/${s.invite_id}`,
-                            })
-                          }
-                        >
-                          Invite link
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-primary px-3 py-1.5 text-sm"
-                        onClick={() => router.push(`/agent/session/${s.id}`)}
-                      >
-                        {s.status === "active" ? "Open" : "View record"}
-                      </button>
-                      {s.status === "ended" && (
-                        <button
-                          className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
-                          title="Delete session"
-                          disabled={deleting === s.id}
-                          onClick={() => deleteSession(s.id)}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  ) : (
+                    <span className="pill shrink-0">ended</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-fg-muted mb-3">
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={12} /> {new Date(s.created_at).toLocaleDateString()}
+                  </span>
+                  <span>{fmtDuration(s.created_at, s.ended_at)}</span>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {s.status === "active" && (
+                    <button
+                      className="btn btn-ghost px-3 py-1.5 text-xs flex-1"
+                      onClick={() =>
+                        setInvite({
+                          session: s,
+                          url: `${window.location.origin}/join/${s.invite_id}`,
+                        })
+                      }
+                    >
+                      Invite link
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-primary px-3 py-1.5 text-xs flex-1"
+                    onClick={() => router.push(`/agent/session/${s.id}`)}
+                  >
+                    {s.status === "active" ? "Open" : "View record"}
+                  </button>
+                  {s.status === "ended" && (
+                    <button
+                      className="btn btn-danger px-2 py-1.5 text-xs disabled:opacity-50"
+                      title="Delete session"
+                      disabled={deleting === s.id}
+                      onClick={() => deleteSession(s.id)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table layout */}
+          <div className="card overflow-hidden hidden sm:block">
+            <div className="table-wrap">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-fg-subtle border-b border-panel-border">
+                    <th className="font-medium px-5 py-3">Session</th>
+                    <th className="font-medium px-5 py-3 hidden md:table-cell">Started</th>
+                    <th className="font-medium px-5 py-3 hidden lg:table-cell">Duration</th>
+                    <th className="font-medium px-5 py-3">Status</th>
+                    <th className="font-medium px-5 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((s) => (
+                    <tr key={s.id} className="border-b border-panel-border last:border-0">
+                      <td className="px-5 py-4 font-medium">{s.title || "Support session"}</td>
+                      <td className="px-5 py-4 text-fg-muted hidden md:table-cell">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock size={13} /> {new Date(s.created_at).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-fg-muted hidden lg:table-cell">{fmtDuration(s.created_at, s.ended_at)}</td>
+                      <td className="px-5 py-4">
+                        {s.status === "active" ? (
+                          <span className="pill text-[var(--success)]">
+                            <Radio size={12} /> active
+                          </span>
+                        ) : (
+                          <span className="pill">ended</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          {s.status === "active" && (
+                            <button
+                              className="btn btn-ghost px-3 py-1.5 text-sm"
+                              onClick={() =>
+                                setInvite({
+                                  session: s,
+                                  url: `${window.location.origin}/join/${s.invite_id}`,
+                                })
+                              }
+                            >
+                              Invite link
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-primary px-3 py-1.5 text-sm"
+                            onClick={() => router.push(`/agent/session/${s.id}`)}
+                          >
+                            {s.status === "active" ? "Open" : "View record"}
+                          </button>
+                          {s.status === "ended" && (
+                            <button
+                              className="btn btn-danger px-2 py-1.5 text-sm disabled:opacity-50"
+                              title="Delete session"
+                              disabled={deleting === s.id}
+                              onClick={() => deleteSession(s.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {invite && (

@@ -5,49 +5,49 @@ import { Video, ShieldCheck, Radio, MessageSquare, ArrowRight } from "lucide-rea
 export default function Landing() {
   return (
     <main className="flex-1">
-      <header className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid place-items-center w-9 h-9 rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
             <Video size={18} />
           </span>
           <span className="text-lg font-medium tracking-tight">ClariVue</span>
         </div>
-        <nav className="flex items-center gap-3">
-          <Link href="/login" className="btn btn-ghost">
-            Agent sign in
+        <nav className="flex items-center gap-2 sm:gap-3">
+          <Link href="/login" className="btn btn-ghost text-xs sm:text-sm px-3 sm:px-4">
+            Sign in
           </Link>
-          <Link href="/signup" className="btn btn-primary">
-            Get started <ArrowRight size={16} />
+          <Link href="/signup" className="btn btn-primary text-xs sm:text-sm px-3 sm:px-4">
+            Get started <ArrowRight size={14} className="hidden sm:inline" />
           </Link>
         </nav>
       </header>
 
-      <section className="max-w-6xl mx-auto px-6 pt-16 pb-24 text-center">
-        <span className="pill mx-auto mb-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-16 sm:pb-24 text-center">
+        <span className="pill mx-auto mb-6 text-[11px] sm:text-xs">
           <ShieldCheck size={14} className="text-[var(--cyan)]" /> Self-hosted · media never leaves your servers
         </span>
-        <h1 className="text-5xl sm:text-6xl font-medium tracking-tight leading-[1.05] max-w-3xl mx-auto">
+        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-medium tracking-tight leading-[1.1] sm:leading-[1.05] max-w-3xl mx-auto">
           See the problem.
           <br />
           <span className="bg-gradient-to-r from-[var(--accent)] to-[var(--cyan)] bg-clip-text text-transparent">
             Solve it live.
           </span>
         </h1>
-        <p className="text-lg text-[var(--fg-muted)] mt-6 max-w-xl mx-auto">
+        <p className="text-base sm:text-lg text-[var(--fg-muted)] mt-4 sm:mt-6 max-w-xl mx-auto px-2">
           Voice calls go blind the moment an issue needs to be seen. ClariVue puts your
           support agent and customer on video in one tap — recorded, chatted, and
           reviewable, all on infrastructure you own.
         </p>
-        <div className="flex items-center justify-center gap-3 mt-9">
-          <Link href="/signup" className="btn btn-primary px-6 py-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7 sm:mt-9 px-4 sm:px-0">
+          <Link href="/signup" className="btn btn-primary px-6 py-3 w-full sm:w-auto">
             Start a support session <ArrowRight size={16} />
           </Link>
-          <Link href="/login" className="btn btn-ghost px-6 py-3">
+          <Link href="/login" className="btn btn-ghost px-6 py-3 w-full sm:w-auto">
             Agent sign in
           </Link>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4 mt-20 text-left">
+        <div className="grid gap-4 mt-14 sm:mt-20 text-left sm:grid-cols-2 lg:grid-cols-3">
           <Feature
             icon={<Radio size={18} />}
             title="Server-routed video"
@@ -67,7 +67,7 @@ export default function Landing() {
       </section>
 
       <footer className="border-t border-panel-border">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6">
           <div className="flex items-center gap-3 text-sm text-fg-muted">
             <span>Built for</span>
             <span className="grid place-items-center bg-white rounded-lg px-2.5 py-1.5">

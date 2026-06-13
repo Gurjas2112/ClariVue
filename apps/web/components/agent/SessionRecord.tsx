@@ -29,15 +29,15 @@ export function SessionRecord({ sessionId, title }: { sessionId: string; title: 
   return (
     <>
       <TopBar />
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
-        <Link href="/agent/dashboard" className="text-sm text-fg-muted hover:text-fg inline-flex items-center gap-1.5 mb-5">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
+        <Link href="/agent/dashboard" className="text-sm text-fg-muted hover:text-fg inline-flex items-center gap-1.5 mb-4 sm:mb-5">
           <ArrowLeft size={15} /> Back to dashboard
         </Link>
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-2xl font-medium tracking-tight">{title}</h1>
-          <span className="pill">ended</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight">{title}</h1>
+          <span className="pill w-fit">ended</span>
         </div>
-        <p className="text-fg-muted text-sm mb-8">Session record · everything from this call.</p>
+        <p className="text-fg-muted text-sm mb-6 sm:mb-8">Session record · everything from this call.</p>
 
         {!data ? (
           <div className="grid place-items-center py-20">

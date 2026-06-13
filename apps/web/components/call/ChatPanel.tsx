@@ -185,8 +185,10 @@ export function ChatPanel({
 
   return (
     <aside
-      className={`glass h-full flex flex-col transition-all duration-200 overflow-hidden ${
-        open ? "w-full sm:w-[340px] opacity-100" : "w-0 opacity-0"
+      className={`glass flex flex-col transition-all duration-200 overflow-hidden ${
+        open
+          ? "w-full h-full sm:w-[340px] sm:h-auto opacity-100"
+          : "w-0 h-0 sm:h-auto opacity-0"
       }`}
     >
       <div className="flex items-center justify-between px-4 h-14 border-b border-panel-border shrink-0">
