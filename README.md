@@ -143,7 +143,14 @@ cd apps/web && vercel --prod
 `trycloudflare` quick tunnels are **ephemeral and will drop** (machine sleep, network blip, time).
 When the tunnel dies, **live video and recording-start break** until it's restored. Because
 `NEXT_PUBLIC_LIVEKIT_URL` is **inlined at build time**, the new URL only takes effect after a redeploy.
-Recovery is three steps:
+
+**One command does the whole recovery** (restart tunnel → repoint Vercel env → redeploy):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File infra\redeploy-tunnel.ps1
+```
+
+<details><summary>What the script does (manual equivalent)</summary>
 
 ```bash
 # 1. restart the tunnel → note the NEW https URL
@@ -159,10 +166,13 @@ echo "wss://<new-name>.trycloudflare.com"   | vercel env add NEXT_PUBLIC_LIVEKIT
 # 3. redeploy so the new wss URL is baked into the client bundle
 vercel --prod
 ```
+</details>
+
 Also keep these **running locally** the whole time: `docker compose -f infra/docker-compose.yml
---profile recording up -d` (LiveKit + Egress + Redis). For a hands-off demo, replace the quick tunnel
-with a **named Cloudflare tunnel** (your own domain — stable URL) or run LiveKit on a small
-**public-IP VM** so there's nothing to babysit.
+--profile recording up -d` (LiveKit + Egress + Redis). **Note:** a cloudflared HTTP/WS tunnel carries
+LiveKit *signaling* but **not the WebRTC media** — so live video works for participants on the same
+machine/LAN; for arbitrary remote browsers, run LiveKit on a **public-IP VM** (or use a named tunnel
+on your own domain only for signaling). The brief allows a screen-recorded demo for remote judging.
 
 ---
 
