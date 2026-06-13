@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Video } from "lucide-react";
+import { Video, Mail, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -17,9 +17,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const redirectTo = params.get("redirect") || "/agent/dashboard";
   const isSignup = mode === "signup";
+  const error = params.get("error");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,6 +35,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Sign up failed");
+
+        // Email confirmation required — show the "check your email" screen.
+        if (json.confirmationSent) {
+          setConfirmationSent(true);
+          setLoading(false);
+          return;
+        }
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -47,6 +56,34 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   }
 
+  // ── Confirmation sent screen ──────────────────────────────────────────
+  if (confirmationSent) {
+    return (
+      <main className="flex-1 grid place-items-center px-4 py-16">
+        <div className="card w-full max-w-md p-8 text-center">
+          <div className="mx-auto mb-5 grid place-items-center w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400">
+            <CheckCircle size={28} />
+          </div>
+          <h1 className="text-2xl font-medium tracking-tight mb-2">Check your email</h1>
+          <p className="text-[var(--fg-muted)] text-sm mb-6 leading-relaxed">
+            We&apos;ve sent a confirmation link to{" "}
+            <span className="text-[var(--fg)] font-medium">{email}</span>.
+            <br />
+            Click the link in the email to activate your account, then come back and sign in.
+          </p>
+          <div className="flex items-center gap-2 justify-center text-xs text-[var(--fg-muted)] mb-6">
+            <Mail size={14} />
+            <span>Sent from ClariVue via Gmail</span>
+          </div>
+          <Link href="/login">
+            <Button className="w-full">Go to sign in</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Auth form ──────────────────────────────────────────────────────────
   return (
     <main className="flex-1 grid place-items-center px-4 py-16">
       <div className="card w-full max-w-md p-8">
@@ -65,6 +102,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             ? "Set up support sessions and invite customers in one tap."
             : "Sign in to create and run support sessions."}
         </p>
+
+        {error === "confirmation_failed" && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            Email confirmation failed or expired. Please try signing up again.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5">

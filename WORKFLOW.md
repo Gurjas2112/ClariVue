@@ -225,6 +225,50 @@ status and the exact steps used.
 
 ---
 
+## 11½. Email confirmation & SMTP
+
+Agent signup requires email confirmation. Supabase sends a confirmation link via **custom Gmail
+SMTP** — configured server-side on the Supabase project, never stored in git.
+
+### How it works
+
+1. Agent fills out `/signup` → `POST /api/auth/signup` calls `supabase.auth.signUp()`.
+2. Supabase sends a confirmation email from `ClariVue <gsgbmcc@gmail.com>` via Gmail SMTP.
+3. Agent clicks the link → redirected to `/auth/callback` → code exchanged for session → dashboard.
+
+### Current SMTP config (set via Supabase Management API)
+
+| Setting | Value |
+|---------|-------|
+| Host | `smtp.gmail.com` |
+| Port | `587` (STARTTLS) |
+| Username | `gsgbmcc@gmail.com` |
+| Sender name | ClariVue |
+| Auth | Google App Password (16-char, not the Gmail login password) |
+
+### Reconfiguring SMTP
+
+**Option A — Supabase Dashboard:**
+Project → Authentication → SMTP Settings → Enable Custom SMTP → fill in the fields.
+
+**Option B — Management API** (what we used):
+```bash
+curl -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+  -H "Authorization: Bearer <supabase-access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"smtp_host":"smtp.gmail.com","smtp_port":"587",
+       "smtp_user":"you@gmail.com","smtp_pass":"<app-password>",
+       "smtp_admin_email":"you@gmail.com","smtp_sender_name":"ClariVue"}'
+```
+
+### Generating a Google App Password
+
+1. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+2. Select **Mail** → generate → copy the 16-character password
+3. Use this as `smtp_pass` — never your regular Gmail password
+
+---
+
 <p align="center">
   <img src="essential_docs/my_photo.jpeg" alt="Gurjas Gandhi" width="64" height="64" style="border-radius:50%" /><br/>
   <b>Gurjas Gandhi</b> · ClariVue

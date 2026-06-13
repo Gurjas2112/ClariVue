@@ -1,7 +1,8 @@
-// Agent signup. Uses the service key to create a confirmed user immediately
-// (independent of the dashboard email-confirmation setting, so judging is smooth)
-// and mirrors a profiles row. Never exposes the service key to the client.
+// Agent signup. Sends a confirmation email via Supabase Auth (custom Gmail SMTP).
+// The user clicks the link → /auth/callback exchanges the code → session starts.
+// Also creates a profiles row via the service key so the profile exists once confirmed.
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +24,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
-  const { data, error } = await admin.auth.admin.createUser({
+  // Standard signup — sends a confirmation email via the configured SMTP.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
-    user_metadata: { role: "agent" },
+    options: {
+      emailRedirectTo: `${appUrl}/auth/callback`,
+      data: { role: "agent" },
+    },
   });
 
   if (error) {
@@ -39,15 +44,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  // Mirror the profile row (id ↔ auth.users).
+  // Mirror the profile row (id ↔ auth.users) using the admin client.
+  // The profile will be ready when the user confirms their email.
   if (data.user) {
+    const admin = createAdminClient();
     const { error: pErr } = await admin
       .from("profiles")
       .upsert({ id: data.user.id, email, role: "agent" }, { onConflict: "id" });
     if (pErr) {
-      return NextResponse.json({ error: "Could not create profile" }, { status: 500 });
+      console.error("Profile creation error:", pErr.message);
+      // Don't fail the signup — profile can be created on first login too.
     }
   }
 
-  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  // Check if Supabase returned an existing unconfirmed user (identities array is empty)
+  const alreadyExists = data.user && data.user.identities && data.user.identities.length === 0;
+  if (alreadyExists) {
+    return NextResponse.json(
+      { error: "An account with this email already exists. Try signing in." },
+      { status: 400 },
+    );
+  }
+
+  return NextResponse.json(
+    { ok: true, confirmationSent: true },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

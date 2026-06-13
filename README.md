@@ -32,8 +32,8 @@ and reviewable afterward.
 - **Ready-made invite link:** `/join/demo-call` (a pre-seeded active session owned by the demo agent).
 - **Admin flow:** log in as admin → **Admin** (top-right) → live sessions, participants, force-end.
 
-Anyone can also sign up a fresh agent account at `/signup` (instant — email confirmation is off for
-the demo).
+Anyone can also sign up a fresh agent account at `/signup` — a confirmation email will be sent
+via Gmail SMTP; click the link to activate, then sign in.
 
 ---
 
@@ -168,9 +168,10 @@ Both run against a server on `http://localhost:3000`.
 - **Recording requires the egress profile + Supabase S3 keys** (one dashboard step, above). Without
   them, the call/chat/admin features are fully functional; the Record button reports a clear error.
 - **Reconnect grace window** is fixed at 30s.
-- **Email confirmation is disabled** for instant demo signups — re-enable for production.
-- This build is **locally runnable** (valid demo deliverable). Cloud deploy (Fly.io for LiveKit,
-  Vercel for the app) is documented in the build spec but not executed here.
+- **Email confirmation is ON** — new signups receive a confirmation link via Gmail SMTP
+  (`gsgbmcc@gmail.com`). See `WORKFLOW.md §11½` for SMTP setup details.
+- **Live deployment** at [clari-vue.vercel.app](https://clari-vue.vercel.app) (app + API + Supabase);
+  video media routed through a Cloudflare tunnel to the local LiveKit SFU.
 
 ---
 

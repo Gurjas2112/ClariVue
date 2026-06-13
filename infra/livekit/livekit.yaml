@@ -16,6 +16,8 @@ keys:
   devkey: secret
 webhook:
   api_key: devkey
-  # Next.js dev server runs on the host; reach it from the container via host.docker.internal.
+  # Local dev server via host.docker.internal; deployed app on Vercel. LiveKit posts
+  # to both — whichever is running records presence/events (signature-validated).
   urls:
     - http://host.docker.internal:3000/api/webhooks/livekit
+    - https://clari-vue.vercel.app/api/webhooks/livekit
