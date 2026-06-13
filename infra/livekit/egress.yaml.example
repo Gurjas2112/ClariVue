@@ -1,0 +1,16 @@
+# LiveKit Egress — room-composite MP4 recording → Supabase Storage (S3-compatible).
+# Copy this file to egress.yaml and fill in the S3 credentials from
+# Supabase dashboard → Storage → S3 access keys.
+log_level: info
+api_key: devkey
+api_secret: secret
+ws_url: ws://livekit:7880
+redis:
+  address: redis:6379
+s3:
+  access_key: YOUR_S3_ACCESS_KEY_ID
+  secret: YOUR_S3_SECRET_ACCESS_KEY
+  region: ap-southeast-1
+  endpoint: https://YOUR_PROJECT_REF.supabase.co/storage/v1/s3
+  bucket: recordings
+  force_path_style: true

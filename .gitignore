@@ -34,3 +34,6 @@ supabase/.temp
 next-env.d.ts
 
 .vercel
+
+# egress config contains S3 secrets — use egress.yaml.example as template
+infra/livekit/egress.yaml
