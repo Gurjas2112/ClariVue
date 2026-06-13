@@ -1,0 +1,52 @@
+# ClariVue local media plane — identical config shape to prod.
+#   docker compose up -d                      -> redis + livekit (enough for calls)
+#   docker compose --profile recording up -d  -> also starts egress (needs Supabase S3 keys)
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  livekit:
+    image: livekit/livekit-server:latest
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: --config /etc/livekit.yaml
+    ports:
+      - "7880:7880"                     # ws/http signal
+      - "7881:7881"                     # ICE/TCP fallback (reliable on Docker Desktop)
+      - "50000-50019:50000-50019/udp"   # ICE/UDP (small range; TCP covers the rest)
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Recording (Phase 6 / R16). Only starts with the "recording" profile so a missing
+  # S3 config never crash-loops the core stack. Provide Supabase Storage S3 keys via env.
+  egress:
+    image: livekit/egress:latest
+    restart: unless-stopped
+    profiles: ["recording"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - EGRESS_CONFIG_FILE=/etc/egress.yaml
+      - SUPABASE_S3_ACCESS_KEY=${SUPABASE_S3_ACCESS_KEY:-}
+      - SUPABASE_S3_SECRET_KEY=${SUPABASE_S3_SECRET_KEY:-}
+    volumes:
+      - ./livekit/egress.yaml:/etc/egress.yaml:ro
+    cap_add:
+      - SYS_ADMIN
+    shm_size: "1gb"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

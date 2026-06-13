@@ -1,0 +1,20 @@
+{
+  "name": "clarivue",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-time, self-hosted video support platform for customer support teams.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/web run build",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "db:apply": "node scripts/apply-db.mjs supabase/migrations/0001_init.sql supabase/seed.sql"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "pg": "^8.13.1"
+  }
+}

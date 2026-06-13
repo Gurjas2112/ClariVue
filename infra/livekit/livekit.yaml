@@ -1,0 +1,21 @@
+# LiveKit — LOCAL DEV config (Docker Compose).
+# Dev keys only; generate strong keys for any non-local deployment.
+port: 7880
+log_level: info
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50019
+  # On Docker Desktop the container's UDP candidates aren't reachable from the host,
+  # so clients fall back to ICE/TCP on 7881. Keep external IP detection off locally.
+  use_external_ip: false
+redis:
+  address: redis:6379
+keys:
+  # APIKEY: SECRET  (matches LIVEKIT_API_KEY / LIVEKIT_API_SECRET in apps/web/.env.local)
+  devkey: secret
+webhook:
+  api_key: devkey
+  # Next.js dev server runs on the host; reach it from the container via host.docker.internal.
+  urls:
+    - http://host.docker.internal:3000/api/webhooks/livekit
