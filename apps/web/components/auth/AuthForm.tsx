@@ -135,6 +135,37 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             />
           </label>
 
+          {!isSignup && (
+            <div className="flex flex-col gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@clarivue.demo");
+                  setPassword("clarivue123");
+                }}
+                className="text-xs text-left p-2.5 rounded-lg border border-dashed border-[var(--accent)]/30 hover:border-[var(--accent)] bg-[var(--accent)]/5 hover:bg-[var(--accent)]/10 text-[var(--accent)] transition-all cursor-pointer"
+              >
+                <div className="font-semibold text-white mb-0.5">⚡ Auto-fill Admin Credentials</div>
+                <div className="text-[var(--fg-muted)] font-mono">
+                  admin@clarivue.demo / clarivue123
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("agent@clarivue.demo");
+                  setPassword("clarivue123");
+                }}
+                className="text-xs text-left p-2.5 rounded-lg border border-dashed border-emerald-500/30 hover:border-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-400 transition-all cursor-pointer"
+              >
+                <div className="font-semibold text-white mb-0.5">⚡ Auto-fill Agent Credentials</div>
+                <div className="text-[var(--fg-muted)] font-mono">
+                  agent@clarivue.demo / clarivue123
+                </div>
+              </button>
+            </div>
+          )}
+
           <Button type="submit" loading={loading} className="mt-2 w-full">
             {isSignup ? "Create account" : "Sign in"}
           </Button>
